@@ -89,30 +89,68 @@ Please sign in to the school administrator dashboard to review the application.`
   return json({ok:true,reference,emailSent},201);
  }
 if(path==="/feedback"&&request.method==="POST"){
- let b;try{b=await request.json()}catch{return json({error:"Invalid feedback submission."},400)}
-const name=safeText(b.name,120),email=safeText(b.email,160),phone=safeText(b.phone,40),rating=safeText(b.rating,30),message=safeText(b.message,2000);
-   if(!child||!dob||!gender||!cls||!guardian||!rel||!phone||!district||!address||!(file instanceof File))return json({error:"Please complete all required fields and attach the child's passport photograph."},400);
-   if(!validImage(file))return json({error:"Passport photograph must be JPG, PNG or WebP and no larger than 5 MB."},400);
-   const key=`admissions/${new Date().toISOString().slice(0,10)}/${randomHex(20)}.${file.type==="image/png"?"png":file.type==="image/webp"?"webp":"jpg"}`;
-   await env.UPLOADS.put(key,file.stream(),{httpMetadata:{contentType:file.type,cacheControl:"private, no-store"}});
-   const reference="BAJS-"+new Date().getFullYear()+"-"+randomHex(4).toUpperCase();
-   try{await env.DB.prepare("INSERT INTO applications (reference,child_name,dob,gender,class_applying,previous_school,guardian_name,relationship,phone,guardian_email,district,address,notes,passport_key) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(reference,child,dob,gender,cls,safeText(f.get("previousSchool"),160),guardian,rel,phone,safeText(f.get("guardianEmail"),160),district,address,safeText(f.get("notes"),1000),key).run();}
-   catch(e){await env.UPLOADS.delete(key);throw e;}
-   const emailSent=await sendSchoolEmail(env,`New admission application: ${reference}`,`A new admission application was received on the Bright Angels Junior School website.\n\nReference: ${reference}\nChild: ${child}\nDate of birth: ${dob}\nGender: ${gender}\nClass applying for: ${cls}\nPrevious school: ${safeText(f.get("previousSchool"),160)||"Not supplied"}\nParent/guardian: ${guardian}\nRelationship: ${rel}\nPhone: ${phone}\nGuardian email: ${safeText(f.get("guardianEmail"),160)||"Not supplied"}\nDistrict: ${district}\nAddress: ${address}\nAdditional notes: ${safeText(f.get("notes"),1000)||"None"}\n\nThe full record and private passport photo are available in the website administrator dashboard.`);
-   let b;try{b=await request.json()}catch{return json({error:"Invalid feedback submission."},400)}
-   const name=safeText(b.name,120),email=safeText(b.email,160),phone=safeText(b.phone,40),rating=safeText(b.rating,30),message=safeText(b.message,2000);
-   if(!name||!message)return json({error:"Please enter your name and message."},400);
-   if(message.length<5)return json({error:"Please provide a little more detail in your message."},400);
-   await env.DB.prepare("INSERT INTO feedback(parent_name,email,phone,rating,message) VALUES(?,?,?,?,?)").bind(name,email,phone,rating,message).run();
-   const emailSent=await sendSchoolEmail(env,"Website feedback from "+name,`New feedback received on the Bright Angels Junior School website.\n\nName: ${name}\nEmail: ${email||"Not supplied"}\nPhone: ${phone||"Not supplied"}\nRating: ${rating||"Not supplied"}\n\nMessage:\n${message}`);
-   return json({ok:true,emailSent},201);
- }
- if(path.startsWith("/gallery-image/")&&request.method==="GET"){
-   const id=Number(path.split("/").pop());if(!Number.isInteger(id))return htmlError("Not found",404);
-   const row=await env.DB.prepare("SELECT object_key,content_type FROM gallery WHERE id=?").bind(id).first();if(!row)return htmlError("Not found",404);
-   const obj=await env.UPLOADS.get(row.object_key);if(!obj)return htmlError("Not found",404);
-   return new Response(obj.body,{headers:{"content-type":row.content_type,"cache-control":"public, max-age=300","x-content-type-options":"nosniff"}});
- }
+  let b;
+  try {
+    b=await request.json();
+  } catch {
+    return json({error:"Invalid feedback submission."},400);
+  }
+
+  const name=safeText(b.name,120);
+  const email=safeText(b.email,160);
+  const phone=safeText(b.phone,40);
+  const rating=safeText(b.rating,30);
+  const message=safeText(b.message,2000);
+
+  if(!name||!message){
+    return json({error:"Please enter your name and message."},400);
+  }
+
+  if(message.length<5){
+    return json({error:"Please provide a little more detail in your message."},400);
+  }
+
+  await env.DB.prepare(
+    "INSERT INTO feedback(parent_name,email,phone,rating,message) VALUES(?,?,?,?,?)"
+  ).bind(name,email,phone,rating,message).run();
+
+  const emailSent=await sendSchoolEmail(
+    env,
+    "Website feedback from "+name,
+    `New feedback received on the Bright Angels Junior School website.
+
+Name: ${name}
+Email: ${email||"Not supplied"}
+Phone: ${phone||"Not supplied"}
+Rating: ${rating||"Not supplied"}
+
+Message:
+${message}`
+  );
+
+  return json({ok:true,emailSent},201);
+}
+if(path.startsWith("/gallery-image/")&&request.method==="GET"){
+  const id=Number(path.split("/").pop());
+  if(!Number.isInteger(id))return htmlError("Not found",404);
+
+  const row=await env.DB.prepare(
+    "SELECT object_key,content_type FROM gallery WHERE id=?"
+  ).bind(id).first();
+
+  if(!row)return htmlError("Not found",404);
+
+  const obj=await env.UPLOADS.get(row.object_key);
+  if(!obj)return htmlError("Not found",404);
+
+  return new Response(obj.body,{
+    headers:{
+      "content-type":row.content_type,
+      "cache-control":"public, max-age=300",
+      "x-content-type-options":"nosniff"
+    }
+  });
+}
  if(path==="/admin/login"&&request.method==="POST"){
    const ip=request.headers.get("CF-Connecting-IP")||"unknown";
    let body;try{body=await request.json()}catch{return json({error:"Invalid login request."},400)}
