@@ -89,7 +89,7 @@ Please sign in to the school administrator dashboard to review the application.`
 
   return json({ok:true,reference,emailSent},201);
  }
-   let f;try{f=await request.formData()}catch{return json({error:"Invalid form submission."},400)}
+if(path==="/feedback"&&request.method==="POST"){
    const child=safeText(f.get("childName"),120),dob=safeText(f.get("dob"),20),gender=safeText(f.get("gender"),30),cls=safeText(f.get("classApplying"),60),guardian=safeText(f.get("guardianName"),120),rel=safeText(f.get("relationship"),50),phone=safeText(f.get("phone"),40),district=safeText(f.get("district"),120),address=safeText(f.get("address"),500),file=f.get("passport");
    if(!child||!dob||!gender||!cls||!guardian||!rel||!phone||!district||!address||!(file instanceof File))return json({error:"Please complete all required fields and attach the child's passport photograph."},400);
    if(!validImage(file))return json({error:"Passport photograph must be JPG, PNG or WebP and no larger than 5 MB."},400);
@@ -99,9 +99,6 @@ Please sign in to the school administrator dashboard to review the application.`
    try{await env.DB.prepare("INSERT INTO applications (reference,child_name,dob,gender,class_applying,previous_school,guardian_name,relationship,phone,guardian_email,district,address,notes,passport_key) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(reference,child,dob,gender,cls,safeText(f.get("previousSchool"),160),guardian,rel,phone,safeText(f.get("guardianEmail"),160),district,address,safeText(f.get("notes"),1000),key).run();}
    catch(e){await env.UPLOADS.delete(key);throw e;}
    const emailSent=await sendSchoolEmail(env,`New admission application: ${reference}`,`A new admission application was received on the Bright Angels Junior School website.\n\nReference: ${reference}\nChild: ${child}\nDate of birth: ${dob}\nGender: ${gender}\nClass applying for: ${cls}\nPrevious school: ${safeText(f.get("previousSchool"),160)||"Not supplied"}\nParent/guardian: ${guardian}\nRelationship: ${rel}\nPhone: ${phone}\nGuardian email: ${safeText(f.get("guardianEmail"),160)||"Not supplied"}\nDistrict: ${district}\nAddress: ${address}\nAdditional notes: ${safeText(f.get("notes"),1000)||"None"}\n\nThe full record and private passport photo are available in the website administrator dashboard.`);
-   return json({ok:true,reference,emailSent},201);
- }
- if(path==="/feedback"&&request.method==="POST") {
    let b;try{b=await request.json()}catch{return json({error:"Invalid feedback submission."},400)}
    const name=safeText(b.name,120),email=safeText(b.email,160),phone=safeText(b.phone,40),rating=safeText(b.rating,30),message=safeText(b.message,2000);
    if(!name||!message)return json({error:"Please enter your name and message."},400);
