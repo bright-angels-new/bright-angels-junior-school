@@ -14,6 +14,3 @@ database_name = "bright-angels-junior-school-db"
 database_id = "137647d1-a64a-4cc0-b3ba-027a9199f7d3"
 migrations_dir = "migrations"
 
-[[r2_buckets]]
-binding = "UPLOADS"
-bucket_name = "bright-angels-school-uploads"
