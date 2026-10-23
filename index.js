@@ -33,8 +33,7 @@ async function apiRoute(request,env,url){
   } catch {
     return json({error:"Invalid form submission."},400);
   }
-
-  const child=safeText(f.get("childName"),120);
+const child=safeText(f.get("childName"),120);
   const dob=safeText(f.get("dob"),20);
   const gender=safeText(f.get("gender"),30);
   const cls=safeText(f.get("classApplying"),60);
@@ -90,7 +89,8 @@ Please sign in to the school administrator dashboard to review the application.`
   return json({ok:true,reference,emailSent},201);
  }
 if(path==="/feedback"&&request.method==="POST"){
-   const child=safeText(f.get("childName"),120),dob=safeText(f.get("dob"),20),gender=safeText(f.get("gender"),30),cls=safeText(f.get("classApplying"),60),guardian=safeText(f.get("guardianName"),120),rel=safeText(f.get("relationship"),50),phone=safeText(f.get("phone"),40),district=safeText(f.get("district"),120),address=safeText(f.get("address"),500),file=f.get("passport");
+ let b;try{b=await request.json()}catch{return json({error:"Invalid feedback submission."},400)}
+const name=safeText(b.name,120),email=safeText(b.email,160),phone=safeText(b.phone,40),rating=safeText(b.rating,30),message=safeText(b.message,2000);
    if(!child||!dob||!gender||!cls||!guardian||!rel||!phone||!district||!address||!(file instanceof File))return json({error:"Please complete all required fields and attach the child's passport photograph."},400);
    if(!validImage(file))return json({error:"Passport photograph must be JPG, PNG or WebP and no larger than 5 MB."},400);
    const key=`admissions/${new Date().toISOString().slice(0,10)}/${randomHex(20)}.${file.type==="image/png"?"png":file.type==="image/webp"?"webp":"jpg"}`;
