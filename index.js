@@ -27,6 +27,68 @@ async function apiRoute(request,env,url){
  const path=url.pathname.replace(/^\/api/,"");
  if(path==="/public"&&request.method==="GET"){return json({settings:await settings(env),news:await listNews(env),gallery:(await listGallery(env)).map(({id,caption,url,createdAt})=>({id,caption,url,createdAt}))});}
  if(path==="/admissions"&&request.method==="POST"){
+  let f;
+  try {
+    f=await request.formData();
+  } catch {
+    return json({error:"Invalid form submission."},400);
+  }
+
+  const child=safeText(f.get("childName"),120);
+  const dob=safeText(f.get("dob"),20);
+  const gender=safeText(f.get("gender"),30);
+  const cls=safeText(f.get("classApplying"),60);
+  const guardian=safeText(f.get("guardianName"),120);
+  const rel=safeText(f.get("relationship"),50);
+  const phone=safeText(f.get("phone"),40);
+  const district=safeText(f.get("district"),120);
+  const address=safeText(f.get("address"),500);
+
+  if(!child||!dob||!gender||!cls||!guardian||!rel||!phone||!district||!address){
+    return json({error:"Please complete all required fields."},400);
+  }
+
+  const reference="BAJS-"+new Date().getFullYear()+"-"+randomHex(4).toUpperCase();
+
+  await env.DB.prepare(
+    "INSERT INTO applications (reference,child_name,dob,gender,class_applying,previous_school,guardian_name,relationship,phone,guardian_email,district,address,notes,passport_key) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+  ).bind(
+    reference,
+    child,
+    dob,
+    gender,
+    cls,
+    safeText(f.get("previousSchool"),160),
+    guardian,
+    rel,
+    phone,
+    safeText(f.get("guardianEmail"),160),
+    district,
+    address,
+    safeText(f.get("notes"),1000),
+    ""
+  ).run();
+
+  const emailSent=await sendSchoolEmail(
+    env,
+    `New admission application: ${reference}`,
+    `A new admission application was received on the Bright Angels Junior School website.
+
+Reference: ${reference}
+Child: ${child}
+Date of birth: ${dob}
+Gender: ${gender}
+Class applying for: ${cls}
+Parent/guardian: ${guardian}
+Phone: ${phone}
+District: ${district}
+Address: ${address}
+
+Please sign in to the school administrator dashboard to review the application.`
+  );
+
+  return json({ok:true,reference,emailSent},201);
+ }
    let f;try{f=await request.formData()}catch{return json({error:"Invalid form submission."},400)}
    const child=safeText(f.get("childName"),120),dob=safeText(f.get("dob"),20),gender=safeText(f.get("gender"),30),cls=safeText(f.get("classApplying"),60),guardian=safeText(f.get("guardianName"),120),rel=safeText(f.get("relationship"),50),phone=safeText(f.get("phone"),40),district=safeText(f.get("district"),120),address=safeText(f.get("address"),500),file=f.get("passport");
    if(!child||!dob||!gender||!cls||!guardian||!rel||!phone||!district||!address||!(file instanceof File))return json({error:"Please complete all required fields and attach the child's passport photograph."},400);
