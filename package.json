@@ -1,0 +1,17 @@
+{
+  "name": "bright-angels-junior-school",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create bright-angels-school-db",
+    "db:migrate:local": "wrangler d1 migrations apply bright-angels-school-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply bright-angels-school-db --remote",
+    "hash-password": "node scripts/hash-password.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
