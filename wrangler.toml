@@ -1,5 +1,5 @@
 name = "bright-angels-junior-school"
-main = "src/index.js"
+main = "index.js"
 compatibility_date = "2026-10-23"
 workers_dev = true
 
