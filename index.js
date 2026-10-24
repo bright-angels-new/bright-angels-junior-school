@@ -253,15 +253,6 @@ async function getApplications(env) {
   }));
 }
 
-function validImage(file) {
-  return (
-    file &&
-    file.size > 0 &&
-    file.size <= MAX_IMAGE &&
-    ALLOWED_TYPES.has(file.type)
-  );
-}
-
 async function apiRoute(request, env, url) {
   const path = url.pathname.replace(/^\/api/, "");
 
@@ -280,11 +271,7 @@ async function apiRoute(request, env, url) {
     });
   }
 
-  // Submit an admission application.
-  if (
-    path === "/admissions" &&
-    request.method === "POST"
-  ) {
+  if (path === "/admissions" && request.method === "POST") {
     let form;
 
     try {
@@ -374,11 +361,7 @@ Please sign in to the school administrator dashboard to review the application.`
     );
   }
 
-  // Submit parent feedback.
-  if (
-    path === "/feedback" &&
-    request.method === "POST"
-  ) {
+  if (path === "/feedback" && request.method === "POST") {
     let body;
 
     try {
@@ -433,13 +416,9 @@ Message:
 ${message}`
     );
 
-    return json(
-      { ok: true, emailSent },
-      201
-    );
+    return json({ ok: true, emailSent }, 201);
   }
 
-  // Gallery image storage is not configured.
   if (
     path.startsWith("/gallery-image/") &&
     request.method === "GET"
@@ -450,11 +429,7 @@ ${message}`
     );
   }
 
-  // Administrator login.
-  if (
-    path === "/admin/login" &&
-    request.method === "POST"
-  ) {
+  if (path === "/admin/login" && request.method === "POST") {
     let body;
 
     try {
@@ -493,16 +468,11 @@ ${message}`
 
     const csrf = randomHex(24);
 
-    const value = await signSession(
-      env,
-      {
-        email: env.ADMIN_EMAIL,
-        csrf,
-        exp:
-          Math.floor(Date.now() / 1000) +
-          SESSION_SECONDS
-      }
-    );
+    const value = await signSession(env, {
+      email: env.ADMIN_EMAIL,
+      csrf,
+      exp: Math.floor(Date.now() / 1000) + SESSION_SECONDS
+    });
 
     return json(
       { ok: true, csrf },
@@ -511,11 +481,7 @@ ${message}`
     );
   }
 
-  // Administrator logout.
-  if (
-    path === "/admin/logout" &&
-    request.method === "POST"
-  ) {
+  if (path === "/admin/logout" && request.method === "POST") {
     const auth = await requireAdmin(request, env);
     if (auth.error) return auth.error;
 
@@ -526,18 +492,11 @@ ${message}`
     );
   }
 
-  // Protected administrator routes.
-  if (
-    path.startsWith("/admin/") ||
-    path === "/admin/data"
-  ) {
+  if (path.startsWith("/admin/") || path === "/admin/data") {
     const auth = await requireAdmin(request, env);
     if (auth.error) return auth.error;
 
-    if (
-      path === "/admin/data" &&
-      request.method === "GET"
-    ) {
+    if (path === "/admin/data" && request.method === "GET") {
       return json({
         settings: await settings(env),
         news: await listNews(env),
@@ -547,20 +506,13 @@ ${message}`
       });
     }
 
-    // Update school information.
-    if (
-      path === "/admin/settings" &&
-      request.method === "PUT"
-    ) {
+    if (path === "/admin/settings" && request.method === "PUT") {
       let body;
 
       try {
         body = await request.json();
       } catch {
-        return json(
-          { error: "Invalid settings." },
-          400
-        );
+        return json({ error: "Invalid settings." }, 400);
       }
 
       const fields = [
@@ -580,32 +532,22 @@ ${message}`
           key,
           safeText(
             body[key],
-            key === "welcome" || key === "aboutText"
-              ? 2000
-              : 1000
+            key === "welcome" || key === "aboutText" ? 2000 : 1000
           )
         )
       );
 
       await env.DB.batch(statements);
-
       return json({ ok: true });
     }
 
-    // Add an announcement.
-    if (
-      path === "/admin/news" &&
-      request.method === "POST"
-    ) {
+    if (path === "/admin/news" && request.method === "POST") {
       let body;
 
       try {
         body = await request.json();
       } catch {
-        return json(
-          { error: "Invalid announcement." },
-          400
-        );
+        return json({ error: "Invalid announcement." }, 400);
       }
 
       const title = safeText(body.title, 150);
@@ -614,10 +556,7 @@ ${message}`
 
       if (!title || !text) {
         return json(
-          {
-            error:
-              "Title and announcement details are required."
-          },
+          { error: "Title and announcement details are required." },
           400
         );
       }
@@ -631,15 +570,9 @@ ${message}`
       return json({ ok: true }, 201);
     }
 
-    // Delete an announcement.
-    const deleteNews = path.match(
-      /^\/admin\/news\/(\d+)$/
-    );
+    const deleteNews = path.match(/^\/admin\/news\/(\d+)$/);
 
-    if (
-      deleteNews &&
-      request.method === "DELETE"
-    ) {
+    if (deleteNews && request.method === "DELETE") {
       await env.DB.prepare(
         "DELETE FROM announcements WHERE id=?"
       )
@@ -649,11 +582,7 @@ ${message}`
       return json({ ok: true });
     }
 
-    // Image uploads are temporarily unavailable.
-    if (
-      path === "/admin/gallery" &&
-      request.method === "POST"
-    ) {
+    if (path === "/admin/gallery" && request.method === "POST") {
       return json(
         {
           error:
@@ -663,15 +592,9 @@ ${message}`
       );
     }
 
-    // Delete a gallery database record.
-    const deleteGallery = path.match(
-      /^\/admin\/gallery\/(\d+)$/
-    );
+    const deleteGallery = path.match(/^\/admin\/gallery\/(\d+)$/);
 
-    if (
-      deleteGallery &&
-      request.method === "DELETE"
-    ) {
+    if (deleteGallery && request.method === "DELETE") {
       await env.DB.prepare(
         "DELETE FROM gallery WHERE id=?"
       )
@@ -681,15 +604,9 @@ ${message}`
       return json({ ok: true });
     }
 
-    // Delete parent feedback.
-    const deleteFeedback = path.match(
-      /^\/admin\/feedback\/(\d+)$/
-    );
+    const deleteFeedback = path.match(/^\/admin\/feedback\/(\d+)$/);
 
-    if (
-      deleteFeedback &&
-      request.method === "DELETE"
-    ) {
+    if (deleteFeedback && request.method === "DELETE") {
       await env.DB.prepare(
         "DELETE FROM feedback WHERE id=?"
       )
@@ -699,15 +616,9 @@ ${message}`
       return json({ ok: true });
     }
 
-    // Delete an admission application.
-    const deleteApplication = path.match(
-      /^\/admin\/admissions\/(\d+)$/
-    );
+    const deleteApplication = path.match(/^\/admin\/admissions\/(\d+)$/);
 
-    if (
-      deleteApplication &&
-      request.method === "DELETE"
-    ) {
+    if (deleteApplication && request.method === "DELETE") {
       await env.DB.prepare(
         "DELETE FROM applications WHERE id=?"
       )
@@ -717,15 +628,9 @@ ${message}`
       return json({ ok: true });
     }
 
-    // Passport photos are not stored in this version.
-    const passport = path.match(
-      /^\/admin\/passport\/(\d+)$/
-    );
+    const passport = path.match(/^\/admin\/passport\/(\d+)$/);
 
-    if (
-      passport &&
-      request.method === "GET"
-    ) {
+    if (passport && request.method === "GET") {
       return htmlError(
         "No passport photograph was saved for this application.",
         404
@@ -825,9 +730,6 @@ export default {
       return env.ASSETS.fetch(request);
     }
 
-    return htmlError(
-      "Static assets binding is missing.",
-      500
-    );
+    return htmlError("Static assets binding is missing.", 500);
   }
 };
